@@ -103,6 +103,32 @@ class DataSet:
         train = DataSet(pd.concat([self.examples.iloc[indexes[range(start)]], 
                                       self.examples.iloc[indexes[range(end, self.N)]]], axis=0))    
         return train, test
+
+    def train_validation_test_split(self, validation_portion=.25, test_portion=.25, shuffle=False, random_state=None):
+        '''
+        Splits the dataset into training, validation, and testing sets.
+        The default ratios are 50% training, 25% validation, and 25% testing
+        '''
+        indexes = np.arange(self.N)
+        
+        if shuffle:
+            rgen = np.random.RandomState(random_state)
+            rgen.shuffle(indexes)
+        
+        if not all(p<1 and p>0 and isinstance(p, float) for p in [validation_portion, test_portion]):
+            raise TypeError("Only fractions between ]0,1[ are allowed")
+        
+        if validation_portion + test_portion >= 1:
+            # they cannot exceed one for obvious reasons but they also can't equal one or there will be no test data
+            raise Exception("validation_portion and test_portion must equal a ratio not equal to or exceeding 1.")
+        
+        valStart, testStart = int(self.N * (1 - (validation_portion + test_portion))), int(self.N * (1 - test_portion))
+        
+        train = DataSet(self.examples.iloc[indexes[range(0, valStart)]])
+        validation = DataSet(self.examples.iloc[indexes[range(valStart, testStart)]])
+        test = DataSet(self.examples.iloc[indexes[range(testStart,self.N)]])
+        
+        return train, validation, test
     
     def __repr__(self):
         return repr(self.examples)
